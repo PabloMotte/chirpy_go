@@ -1,0 +1,3 @@
+#!/bin/sh
+echo "Rebuilding chirpy_go server..."
+go build -o out && ./out

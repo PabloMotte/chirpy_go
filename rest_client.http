@@ -1,0 +1,77 @@
+# Usage: https://github.com/Huachao/vscode-restclient#usage
+
+###
+
+# Get the number of hits for the /app/ site
+GET http://localhost:8080/admin/metrics
+
+###
+
+# Reset app hit count
+POST http://localhost:8080/admin/reset
+
+###
+
+# Get the server health
+GET http://localhost:8080/api/healthz
+
+###
+
+# Post a good chirp
+POST http://localhost:8080/api/validate_chirp
+content-type: application/json
+
+{
+    "body": "This is the first chirp!"
+}
+
+###
+
+# Post a bad chirp #1 - 0 chars long
+POST http://localhost:8080/api/validate_chirp
+content-type: application/json
+
+{
+    "body": ""
+}
+
+###
+
+# Post a bad chirp #2 - 141 chars long
+POST http://localhost:8080/api/validate_chirp
+content-type: application/json
+
+{
+    "body": "123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.."
+}
+
+###
+
+# Post a good chirp w/ no bad words
+POST http://localhost:8080/api/validate_chirp
+content-type: application/json
+
+{
+  "body": "I had something interesting for breakfast"
+}
+
+###
+# Post a good chirp w/ 1 bad word
+POST http://localhost:8080/api/validate_chirp
+content-type: application/json
+
+{
+  "body": "I hear Mastodon is better than Chirpy. sharbert I need to migrate",
+  "extra": "this should be ignored"
+}
+
+###
+# Post a good chirp w/ bad words
+POST http://localhost:8080/api/validate_chirp
+content-type: application/json
+
+{
+  "body": "I really need a kerfuffle to go to bed sooner, Fornax !"
+}
+
+###

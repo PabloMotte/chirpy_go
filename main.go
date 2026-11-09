@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -12,6 +13,18 @@ type apiConfig struct {
 	fileserverHits atomic.Int32
 }
 
+type chirpRequest struct {
+	Body string `json:"body"`
+}
+
+type chirpResponseValid struct {
+	CleanedBody string `json:"cleaned_body"`
+}
+
+type chirpResponseError struct {
+	Error string `json:"error"`
+}
+
 // The chirpy_go web server
 func main() {
 	appPath := "."
@@ -19,14 +32,22 @@ func main() {
 		fileserverHits: atomic.Int32{},
 	}
 	chirpy_go := http.NewServeMux()
+
 	// the /app/ subtree...
 	chirpy_go.Handle("/app/", apiCfg.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir(appPath)))))
-	// the /healtz endpoint displays the "health" of the server
-	chirpy_go.HandleFunc("GET /healthz", healthzHandler)
-	// the /metrics endpoint displays the number of requests handled under the /app/ subtree
-	chirpy_go.HandleFunc("GET /metrics", apiCfg.metricsHandler)
-	// the /reset endpoint resets the /app/ metrics
-	chirpy_go.HandleFunc("POST /reset", apiCfg.resetHandler)
+
+	// the /api/ subtree...
+	// the /api/healthz endpoint displays the "health" of the server
+	chirpy_go.HandleFunc("GET /api/healthz", healthzHandler)
+	// the /api/validate_chirp endpoint resets the /app/ metrics
+	chirpy_go.HandleFunc("POST /api/validate_chirp", apiCfg.validateChirpHandler)
+
+	// the /admin/ subtree...
+	// the /admin/metrics endpoint displays the number of requests handled under the /app/ subtree
+	chirpy_go.HandleFunc("GET /admin/metrics", apiCfg.metricsHandler)
+	// the /admin/reset endpoint resets the /app/ metrics
+	chirpy_go.HandleFunc("POST /admin/reset", apiCfg.resetHandler)
+
 	s := &http.Server{
 		Addr:           ":8080",
 		Handler:        apiCfg.middlewareLog(chirpy_go),
@@ -48,9 +69,14 @@ func (cfg *apiConfig) middlewareLog(next http.Handler) http.Handler {
 
 // Display the number of hits to the /app/ subtree
 func (cfg *apiConfig) metricsHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
-	s := fmt.Sprintf("Hits: %v", cfg.fileserverHits.Load())
+	s := fmt.Sprintf(`<html>
+  <body>
+    <h1>Welcome, Chirpy Admin</h1>
+    <p>Chirpy has been visited %d times!</p>
+  </body>
+</html>`, cfg.fileserverHits.Load())
 	w.Write(([]byte)(s))
 }
 
@@ -60,4 +86,19 @@ func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
 		cfg.fileserverHits.Add(1)
 		next.ServeHTTP(w, r)
 	})
+}
+
+func (cfg *apiConfig) responseWithJSON(respId int, respBody interface{}, w http.ResponseWriter, r *http.Request) {
+	if respId >= http.StatusInternalServerError {
+		log.Printf("Responding with %d error: %v", respId, respBody)
+	}
+	dat, err := json.Marshal(respBody)
+	if err != nil {
+		log.Printf("Error marshalling JSON: %s", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(respId)
+	w.Write(dat)
 }
