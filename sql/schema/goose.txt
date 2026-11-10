@@ -1,0 +1,3 @@
+goose -dir sql/schema postgres '<dburl>' up
+goose -dir sql/schema postgres '<dburl>' down
+goose -dir sql/schema postgres '<dburl>' status

@@ -18,60 +18,127 @@ GET http://localhost:8080/api/healthz
 ###
 
 # Post a good chirp
-POST http://localhost:8080/api/validate_chirp
+POST http://localhost:8080/api/chirps
 content-type: application/json
 
 {
-    "body": "This is the first chirp!"
+  "body": "This is the first chirp!",
+  "user_id": "e68bc280-38ff-4811-b005-4b7fb7787ee7"
 }
 
 ###
 
 # Post a bad chirp #1 - 0 chars long
-POST http://localhost:8080/api/validate_chirp
+POST http://localhost:8080/api/chirps
 content-type: application/json
 
 {
-    "body": ""
+  "body": "",
+  "user_id": "e68bc280-38ff-4811-b005-4b7fb7787ee7"
+}
+
+###
+
+# Post a bad chirp #1 - 0 chars long
+POST http://localhost:8080/api/chirps
+content-type: application/json
+
+{
+  "body": "e68bc280-38ff-4811-b005-4b7fb7787ee7",
+  "user_id": ""
 }
 
 ###
 
 # Post a bad chirp #2 - 141 chars long
-POST http://localhost:8080/api/validate_chirp
+POST http://localhost:8080/api/chirps
 content-type: application/json
 
 {
-    "body": "123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.."
+  "body": "123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789..",
+  "user_id": "e68bc280-38ff-4811-b005-4b7fb7787ee7"
 }
 
 ###
 
-# Post a good chirp w/ no bad words
-POST http://localhost:8080/api/validate_chirp
+# Post a good chirp w/ bad user id
+POST http://localhost:8080/api/chirps
 content-type: application/json
 
 {
-  "body": "I had something interesting for breakfast"
+  "body": "I had something interesting for breakfast",
+  "user_id": "123e4567-w89b-12d3-a456-426614174000"
 }
 
 ###
 # Post a good chirp w/ 1 bad word
-POST http://localhost:8080/api/validate_chirp
+POST http://localhost:8080/api/chirps
 content-type: application/json
 
 {
   "body": "I hear Mastodon is better than Chirpy. sharbert I need to migrate",
-  "extra": "this should be ignored"
+  "extra": "this should be ignored",
+  "user_id": "e68bc280-38ff-4811-b005-4b7fb7787ee7"
 }
 
 ###
 # Post a good chirp w/ bad words
-POST http://localhost:8080/api/validate_chirp
+POST http://localhost:8080/api/chirps
 content-type: application/json
 
 {
-  "body": "I really need a kerfuffle to go to bed sooner, Fornax !"
+  "body": "Hello, world! And hello to sharbert and bob.",
+  "user_id": "f68bc280-38ff-4811-b005-4b7fb7787ee7"
+}
+
+###
+# Post a create user request
+POST http://localhost:8080/api/users
+content-type: application/json
+
+{
+  "email": "pablomotte+chirpy@gmail.com"
+}
+
+###
+# Post a bad create user request
+POST http://localhost:8080/api/users
+content-type: application/json
+
+{
+  "email": ""
+}
+
+###
+# Post a really bad create user request
+POST http://localhost:8080/api/users
+content-type: application/json
+
+{
+}
+
+###
+# Get all chirps request
+GET http://localhost:8080/api/chirps
+content-type: application/json
+
+{
+}
+
+###
+# Get a chirp with no id request
+GET http://localhost:8080/api/chirps/
+content-type: application/json
+
+{
+}
+
+###
+# Get a chirp request
+GET http://localhost:8080/api/chirps/33e91a29-1126-4cc8-aecf-becbe77ae5e1
+content-type: application/json
+
+{
 }
 
 ###

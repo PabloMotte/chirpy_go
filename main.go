@@ -1,35 +1,43 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"sync/atomic"
 	"time"
+
+	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
+	"github.com/pablomotte/chirpy_go/internal/database"
 )
 
 type apiConfig struct {
 	fileserverHits atomic.Int32
+	dbQueries      *database.Queries
+	platform       string
 }
 
-type chirpRequest struct {
-	Body string `json:"body"`
-}
-
-type chirpResponseValid struct {
-	CleanedBody string `json:"cleaned_body"`
-}
-
-type chirpResponseError struct {
+type chirpyResponseError struct {
 	Error string `json:"error"`
 }
 
 // The chirpy_go web server
 func main() {
+	godotenv.Load()
+	dbURL := os.Getenv("DB_URL")
+	db, err := sql.Open("postgres", dbURL)
+	if err != nil {
+		log.Fatalf("Database failed to open: %v", err)
+	}
 	appPath := "."
 	apiCfg := apiConfig{
 		fileserverHits: atomic.Int32{},
+		dbQueries:      database.New(db),
+		platform:       os.Getenv("PLATFORM"),
 	}
 	chirpy_go := http.NewServeMux()
 
@@ -37,10 +45,16 @@ func main() {
 	chirpy_go.Handle("/app/", apiCfg.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir(appPath)))))
 
 	// the /api/ subtree...
-	// the /api/healthz endpoint displays the "health" of the server
+	// the GET /api/healthz endpoint displays the "health" of the server
 	chirpy_go.HandleFunc("GET /api/healthz", healthzHandler)
-	// the /api/validate_chirp endpoint resets the /app/ metrics
-	chirpy_go.HandleFunc("POST /api/validate_chirp", apiCfg.validateChirpHandler)
+	// the POST /api/chirps endpoint creates a chirp
+	chirpy_go.HandleFunc("POST /api/chirps", apiCfg.createChirpHandler)
+	// the GET /api/chirps endpoint gets all chirps
+	chirpy_go.HandleFunc("GET /api/chirps", apiCfg.getChirpsHandler)
+	// the GET /api/chirps/{chirpID} endpoint gets a single chirp with UUID chirpID
+	chirpy_go.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.getChirpHandler)
+	// the POST /api/users endpoint creates a user
+	chirpy_go.HandleFunc("POST /api/users", apiCfg.createUserHandler)
 
 	// the /admin/ subtree...
 	// the /admin/metrics endpoint displays the number of requests handled under the /app/ subtree
@@ -67,6 +81,14 @@ func (cfg *apiConfig) middlewareLog(next http.Handler) http.Handler {
 	})
 }
 
+// Increment the /app/ metrics counter
+func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		cfg.fileserverHits.Add(1)
+		next.ServeHTTP(w, r)
+	})
+}
+
 // Display the number of hits to the /app/ subtree
 func (cfg *apiConfig) metricsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -78,14 +100,6 @@ func (cfg *apiConfig) metricsHandler(w http.ResponseWriter, r *http.Request) {
   </body>
 </html>`, cfg.fileserverHits.Load())
 	w.Write(([]byte)(s))
-}
-
-// Increment the /app/ metrics counter
-func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cfg.fileserverHits.Add(1)
-		next.ServeHTTP(w, r)
-	})
 }
 
 func (cfg *apiConfig) responseWithJSON(respId int, respBody interface{}, w http.ResponseWriter, r *http.Request) {
