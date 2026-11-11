@@ -97,7 +97,8 @@ POST http://localhost:8080/api/users
 content-type: application/json
 
 {
-  "email": "pablomotte+chirpy@gmail.com"
+  "email": "pablomotte+chirpy@gmail.com",
+  "password": "123abc456"
 }
 
 ###
@@ -106,7 +107,17 @@ POST http://localhost:8080/api/users
 content-type: application/json
 
 {
-  "email": ""
+  "email": "",
+  "password": "123abc456"
+}
+
+###
+# Post a bad create user request
+POST http://localhost:8080/api/users
+content-type: application/json
+
+{
+  "email": "abc@example.com"
 }
 
 ###

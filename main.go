@@ -55,6 +55,8 @@ func main() {
 	chirpy_go.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.getChirpHandler)
 	// the POST /api/users endpoint creates a user
 	chirpy_go.HandleFunc("POST /api/users", apiCfg.createUserHandler)
+	// the POST /api/login endpoint logs in a user
+	chirpy_go.HandleFunc("POST /api/login", apiCfg.loginUserHandler)
 
 	// the /admin/ subtree...
 	// the /admin/metrics endpoint displays the number of requests handled under the /app/ subtree
