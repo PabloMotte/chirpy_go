@@ -19,6 +19,7 @@ type apiConfig struct {
 	fileserverHits atomic.Int32
 	dbQueries      *database.Queries
 	platform       string
+	jwt_secret     string
 }
 
 type chirpyResponseError struct {
@@ -38,6 +39,10 @@ func main() {
 		fileserverHits: atomic.Int32{},
 		dbQueries:      database.New(db),
 		platform:       os.Getenv("PLATFORM"),
+		jwt_secret:     os.Getenv("JWT_SECRET"),
+	}
+	if len(apiCfg.jwt_secret) < 1 {
+		log.Fatal("JWT_SECRET required")
 	}
 	chirpy_go := http.NewServeMux()
 

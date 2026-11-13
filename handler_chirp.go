@@ -12,12 +12,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 	"github.com/lib/pq/pqerror"
+	"github.com/pablomotte/chirpy_go/internal/auth"
 	"github.com/pablomotte/chirpy_go/internal/database"
 )
 
 type createChirpRequest struct {
-	Body   string `json:"body"`
-	UserID string `json:"user_id"`
+	Body string `json:"body"`
+	// UserID string `json:"user_id"`
 }
 
 type chirpResponseValid struct {
@@ -89,9 +90,27 @@ func (cfg *apiConfig) getChirpHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (cfg *apiConfig) createChirpHandler(w http.ResponseWriter, r *http.Request) {
+	used_token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respBody := chirpyResponseError{
+			Error: fmt.Sprintf("Invalid bearer token: %v", err),
+		}
+		cfg.responseWithJSON(http.StatusUnauthorized, respBody, w, r)
+		return
+	}
+	passed_uuid, err := auth.ValidateJWT(used_token, cfg.jwt_secret)
+	if err != nil || passed_uuid == uuid.Nil {
+		log.Printf("Error validating token: %v", used_token)
+		log.Printf("Error validating token: %v", passed_uuid)
+		respBody := chirpyResponseError{
+			Error: fmt.Sprintf("Invalid authorization token: %v", err),
+		}
+		cfg.responseWithJSON(http.StatusUnauthorized, respBody, w, r)
+		return
+	}
 	decoder := json.NewDecoder(r.Body)
 	chirpReq := createChirpRequest{}
-	err := decoder.Decode(&chirpReq)
+	err = decoder.Decode(&chirpReq)
 	if err != nil {
 		log.Printf("Error decoding parameters: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -107,20 +126,20 @@ func (cfg *apiConfig) createChirpHandler(w http.ResponseWriter, r *http.Request)
 			Error: "Chirp is too long",
 		}
 		cfg.responseWithJSON(http.StatusBadRequest, respBody, w, r)
-	} else if err := uuid.Validate(chirpReq.UserID); err != nil {
-		respBody := chirpyResponseError{
-			Error: "Invalid UUID format",
-		}
-		cfg.responseWithJSON(http.StatusBadRequest, respBody, w, r)
+		// } else if err := uuid.Validate(chirpReq.UserID); err != nil {
+		// 	respBody := chirpyResponseError{
+		// 		Error: "Invalid UUID format",
+		// 	}
+		// 	cfg.responseWithJSON(http.StatusBadRequest, respBody, w, r)
 	} else {
-		passed_uuid, err := uuid.Parse(chirpReq.UserID)
-		if err != nil {
-			respBody := chirpyResponseError{
-				Error: "Unable to parse UUID",
-			}
-			cfg.responseWithJSON(http.StatusBadRequest, respBody, w, r)
-			return
-		}
+		// passed_uuid, err := uuid.Parse(chirpReq.UserID)
+		// if err != nil {
+		// 	respBody := chirpyResponseError{
+		// 		Error: "Unable to parse UUID",
+		// 	}
+		// 	cfg.responseWithJSON(http.StatusBadRequest, respBody, w, r)
+		// 	return
+		// }
 		chirpCreateParms := database.CreateChirpParams{
 			Body:   profanity_check(chirpReq.Body),
 			UserID: passed_uuid,

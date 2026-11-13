@@ -17,7 +17,7 @@ GET http://localhost:8080/api/healthz
 
 ###
 
-# Post a good chirp
+# Post a good chirp, without authorisaztion
 POST http://localhost:8080/api/chirps
 content-type: application/json
 
@@ -61,7 +61,7 @@ content-type: application/json
 
 ###
 
-# Post a good chirp w/ bad user id
+# Post a good chirp w/ bad user id and no auth
 POST http://localhost:8080/api/chirps
 content-type: application/json
 
@@ -71,7 +71,7 @@ content-type: application/json
 }
 
 ###
-# Post a good chirp w/ 1 bad word
+# Post a good chirp w/ 1 bad word and no auth
 POST http://localhost:8080/api/chirps
 content-type: application/json
 
@@ -82,23 +82,13 @@ content-type: application/json
 }
 
 ###
-# Post a good chirp w/ bad words
+# Post a good chirp w/ bad words and no auth
 POST http://localhost:8080/api/chirps
 content-type: application/json
 
 {
   "body": "Hello, world! And hello to sharbert and bob.",
   "user_id": "f68bc280-38ff-4811-b005-4b7fb7787ee7"
-}
-
-###
-# Post a create user request
-POST http://localhost:8080/api/users
-content-type: application/json
-
-{
-  "email": "pablomotte+chirpy@gmail.com",
-  "password": "123abc456"
 }
 
 ###
@@ -153,3 +143,57 @@ content-type: application/json
 }
 
 ###
+# Post a create user request
+POST http://localhost:8080/api/users
+content-type: application/json
+
+{
+  "email": "pablomotte+chirpy@gmail.com",
+  "password": "123abc456"
+}
+
+###
+# Post a user login request
+POST http://localhost:8080/api/login
+content-type: application/json
+
+{
+  "email": "pablomotte+chirpy@gmail.com",
+  "password": "123abc456",
+  "expires_in_seconds": 100
+}
+
+###
+# Post a good chirp w/ bad words
+POST http://localhost:8080/api/chirps
+content-type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjaGlycHktYWNjZXNzIiwic3ViIjoiOTM2MmJlZGQtN2UyNi00N2YzLTg0NzQtOTAyNmI5NTlhYzdmIiwiZXhwIjoxNzk0NTcyMTYzLCJpYXQiOjE3OTQ1NzIwNjN9.4JJB-3LQ1goducq51maKcLS3QNx9LkOkkSl-62y-7vM
+
+{
+  "body": "Hello, world! And hello to sharbert and bob.",
+  "user_id": "f68bc280-38ff-4811-b005-4b7fb7787ee7"
+}
+
+###
+# Post a good chirp w/ 1 bad word
+POST http://localhost:8080/api/chirps
+content-type: application/json
+Authorization: "Bearer Authorization"
+
+{
+  "body": "I hear Mastodon is better than Chirpy. sharbert I need to migrate",
+  "extra": "this should be ignored",
+  "user_id": "e68bc280-38ff-4811-b005-4b7fb7787ee7"
+}
+
+###
+
+# Post a good chirp
+POST http://localhost:8080/api/chirps
+content-type: application/json
+Authorization: "Bearer Authorization"
+
+{
+  "body": "This is the first chirp!",
+  "user_id": "e68bc280-38ff-4811-b005-4b7fb7787ee7"
+}

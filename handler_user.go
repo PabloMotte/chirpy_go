@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/lib/pq"
 	"github.com/lib/pq/pqerror"
 	"github.com/pablomotte/chirpy_go/internal/auth"
@@ -15,7 +16,7 @@ import (
 )
 
 type userCreateRequest struct {
-	Email string `json:"email"`
+	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
@@ -27,15 +28,17 @@ type userCreateResponseValid struct {
 }
 
 type userLoginRequest struct {
-	Email string `json:"email"`
+	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
 type userLoginResponseValid struct {
-	Id        string `json:"id"`
-	CreatedAt string `json:"created_at"`
-	UpdatedAt string `json:"updated_at"`
-	Email     string `json:"email"`
+	Id           string `json:"id"`
+	CreatedAt    string `json:"created_at"`
+	UpdatedAt    string `json:"updated_at"`
+	Email        string `json:"email"`
+	Token        string `json:"token"`
+	RefreshToken string `json:"refresh_token"`
 }
 
 func (cfg *apiConfig) loginUserHandler(w http.ResponseWriter, r *http.Request) {
@@ -59,6 +62,11 @@ func (cfg *apiConfig) loginUserHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		cfg.responseWithJSON(http.StatusBadRequest, respBody, w, r)
 	} else {
+		expiry_duration, err := time.ParseDuration("3600s") // one hour
+		if err != nil {
+			log.Printf("Error creating duration: %s", err)
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 		user, err := cfg.dbQueries.GetUser(r.Context(), userLoginReq.Email)
 		if err != nil {
 			if err == sql.ErrNoRows {
@@ -81,11 +89,25 @@ func (cfg *apiConfig) loginUserHandler(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
+		new_token, err := auth.MakeJWT(user.ID, cfg.jwt_secret, expiry_duration)
+		if err != nil {
+			log.Printf("Error creating token: %s", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		new_refresh_token, err := cfg.GetRefreshToken(user.ID, r)
+		if err != nil {
+			log.Printf("Error creating refresh token: %s", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 		respBody := userLoginResponseValid{
-			Id:        user.ID.String(),
-			CreatedAt: user.CreatedAt.Format(time.UnixDate),
-			UpdatedAt: user.UpdatedAt.Format(time.UnixDate),
-			Email:     user.Email,
+			Id:           user.ID.String(),
+			CreatedAt:    user.CreatedAt.Format(time.UnixDate),
+			UpdatedAt:    user.UpdatedAt.Format(time.UnixDate),
+			Email:        user.Email,
+			Token:        new_token,
+			RefreshToken: new_refresh_token,
 		}
 		cfg.responseWithJSON(http.StatusOK, respBody, w, r)
 	}
@@ -119,7 +141,7 @@ func (cfg *apiConfig) createUserHandler(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 		userCreateParms := database.CreateUserParams{
-			Email: userCreateReq.Email,
+			Email:          userCreateReq.Email,
 			HashedPassword: hashed_pw,
 		}
 		user, err := cfg.dbQueries.CreateUser(r.Context(), userCreateParms)
@@ -146,4 +168,31 @@ func (cfg *apiConfig) createUserHandler(w http.ResponseWriter, r *http.Request) 
 		}
 		cfg.responseWithJSON(http.StatusCreated, respBody, w, r)
 	}
+}
+
+func (cfg *apiConfig) GetRefreshToken(user_id uuid.UUID, r *http.Request) (string, error) {
+	r_token, err := cfg.dbQueries.GetRefreshTokenByUserID(r.Context(), user_id)
+	if err != nil {
+		if err != sql.ErrNoRows {
+			return "", fmt.Errorf("Error finding refresh token: %s", err)
+		}
+	} else {
+		if r_token.ExpiresAt.After(time.Now().UTC()) {
+			return r_token.Token, nil
+		}
+	}
+	new_token := auth.MakeRefreshToken()
+	createRefreshTokenParams := database.CreateRefreshTokenParams{
+		Token:     new_token,
+		UserID:    user_id,
+		ExpiresAt: time.Now().UTC().Add(60 * 24 * time.Hour),
+		RevokedAt: sql.NullTime{
+			Valid: false,
+		},
+	}
+	r_token, err = cfg.dbQueries.CreateRefreshToken(r.Context(), createRefreshTokenParams)
+	if err != nil {
+		return "", fmt.Errorf("Error creating refresh token: %s", err)
+	}
+	return r_token.Token, nil
 }
