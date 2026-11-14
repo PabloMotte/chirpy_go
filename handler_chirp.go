@@ -89,6 +89,58 @@ func (cfg *apiConfig) getChirpHandler(w http.ResponseWriter, r *http.Request) {
 	cfg.responseWithJSON(http.StatusOK, chirp, w, r)
 }
 
+func (cfg *apiConfig) deleteChirpHandler(w http.ResponseWriter, r *http.Request) {
+	used_token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respBody := chirpyResponseError{
+			Error: fmt.Sprintf("Invalid authentication token: %v", err),
+		}
+		cfg.responseWithJSON(http.StatusUnauthorized, respBody, w, r)
+		return
+	}
+	passed_uuid, err := auth.ValidateJWT(used_token, cfg.jwt_secret)
+	if err != nil || passed_uuid == uuid.Nil {
+		log.Printf("Error validating token: %v", used_token)
+		log.Printf("Error validating token: %v", passed_uuid)
+		respBody := chirpyResponseError{
+			Error: fmt.Sprintf("Invalid authentication token: %v", err),
+		}
+		cfg.responseWithJSON(http.StatusUnauthorized, respBody, w, r)
+		return
+	}
+	passed_chirp_id := r.PathValue("chirpID")
+	chirp_id, err := uuid.Parse(passed_chirp_id)
+	if err != nil {
+		log.Printf("Error retrieving chirp ID %v: %v", passed_chirp_id, err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	chirp, err := cfg.dbQueries.GetChirp(r.Context(), chirp_id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// log.Printf("No chirps available")
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		log.Printf("Error retrieving chirp: %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if chirp.UserID != passed_uuid {
+		respBody := chirpyResponseError{
+			Error: fmt.Sprintf("Not authorised to delete that chirp"),
+		}
+		cfg.responseWithJSON(http.StatusForbidden, respBody, w, r)
+		return
+	}
+	if err = cfg.dbQueries.DeleteChirpByID(r.Context(), chirp_id); err != nil {
+		log.Printf("Error deleting chirp: %s", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (cfg *apiConfig) createChirpHandler(w http.ResponseWriter, r *http.Request) {
 	used_token, err := auth.GetBearerToken(r.Header)
 	if err != nil {

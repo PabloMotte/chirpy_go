@@ -54,6 +54,8 @@ func main() {
 	chirpy_go.HandleFunc("GET /api/healthz", healthzHandler)
 	// the POST /api/chirps endpoint creates a chirp
 	chirpy_go.HandleFunc("POST /api/chirps", apiCfg.createChirpHandler)
+	// the DELETE /api/chirps/{chirpID} endpoint deletes a chirp for the owning user
+	chirpy_go.HandleFunc("DELETE /api/chirps/{chirpID}", apiCfg.deleteChirpHandler)
 	// the GET /api/chirps endpoint gets all chirps
 	chirpy_go.HandleFunc("GET /api/chirps", apiCfg.getChirpsHandler)
 	// the GET /api/chirps/{chirpID} endpoint gets a single chirp with UUID chirpID
