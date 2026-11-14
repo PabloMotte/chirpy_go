@@ -60,8 +60,14 @@ func main() {
 	chirpy_go.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.getChirpHandler)
 	// the POST /api/users endpoint creates a user
 	chirpy_go.HandleFunc("POST /api/users", apiCfg.createUserHandler)
+	// the PUT /api/users endpoint updates a user
+	chirpy_go.HandleFunc("PUT /api/users", apiCfg.updateUserHandler)
 	// the POST /api/login endpoint logs in a user
 	chirpy_go.HandleFunc("POST /api/login", apiCfg.loginUserHandler)
+	// the POST /api/refresh endpoint refreshes a user's access token
+	chirpy_go.HandleFunc("POST /api/refresh", apiCfg.refreshUserHandler)
+	// the POST /api/revoke endpoint revokes a user's access token
+	chirpy_go.HandleFunc("POST /api/revoke", apiCfg.revokeUserHandler)
 
 	// the /admin/ subtree...
 	// the /admin/metrics endpoint displays the number of requests handled under the /app/ subtree

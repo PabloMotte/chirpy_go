@@ -93,7 +93,7 @@ func (cfg *apiConfig) createChirpHandler(w http.ResponseWriter, r *http.Request)
 	used_token, err := auth.GetBearerToken(r.Header)
 	if err != nil {
 		respBody := chirpyResponseError{
-			Error: fmt.Sprintf("Invalid bearer token: %v", err),
+			Error: fmt.Sprintf("Invalid authentication token: %v", err),
 		}
 		cfg.responseWithJSON(http.StatusUnauthorized, respBody, w, r)
 		return
@@ -103,7 +103,7 @@ func (cfg *apiConfig) createChirpHandler(w http.ResponseWriter, r *http.Request)
 		log.Printf("Error validating token: %v", used_token)
 		log.Printf("Error validating token: %v", passed_uuid)
 		respBody := chirpyResponseError{
-			Error: fmt.Sprintf("Invalid authorization token: %v", err),
+			Error: fmt.Sprintf("Invalid authentication token: %v", err),
 		}
 		cfg.responseWithJSON(http.StatusUnauthorized, respBody, w, r)
 		return

@@ -19,7 +19,7 @@ ORDER BY created_at
 -- name: GetRefreshToken :one
 SELECT token, created_at, updated_at, user_id, expires_at, revoked_at
 FROM refresh_tokens
-WHERE token IN ($1)
+WHERE token IN ($1) and revoked_at is NULL
 ;
 
 -- name: GetRefreshTokenByUserID :one
@@ -34,7 +34,7 @@ DELETE
 FROM refresh_tokens
 ;
 
--- name: DeleteRefreshTokenByID :exec
+-- name: DeleteRefreshToken :exec
 DELETE
 FROM refresh_tokens
 WHERE token IN ($1)
@@ -46,14 +46,14 @@ FROM refresh_tokens
 WHERE user_id IN ($1)
 ;
 
--- name: RevokeRefreshTokenByID :exec
+-- name: RevokeRefreshToken :exec
 UPDATE refresh_tokens
-SET revoked_at=NOW()
+SET revoked_at=NOW(), updated_at=NOW()
 WHERE token IN ($1)
 ;
 
--- name: RevokeeAllRefreshTokensByUserID :exec
+-- name: RevokeAllRefreshTokensByUserID :exec
 UPDATE refresh_tokens
-SET revoked_at=NOW()
+SET revoked_at=NOW(), updated_at=NOW()
 WHERE user_id IN ($1)
 ;

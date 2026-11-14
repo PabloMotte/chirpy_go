@@ -31,6 +31,12 @@ DELETE
 FROM users
 ;
 
+-- name: UpdateUserByID :exec
+UPDATE users
+SET (updated_at, email, hashed_password)=(Now(), $2, $3)
+WHERE id IN ($1)
+RETURNING *;
+
 -- name: DeleteUserByID :exec
 DELETE
 FROM users

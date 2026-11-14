@@ -73,14 +73,14 @@ func (q *Queries) DeleteAllRefreshTokensByUserID(ctx context.Context, userID uui
 	return err
 }
 
-const deleteRefreshTokenByID = `-- name: DeleteRefreshTokenByID :exec
+const deleteRefreshToken = `-- name: DeleteRefreshToken :exec
 DELETE
 FROM refresh_tokens
 WHERE token IN ($1)
 `
 
-func (q *Queries) DeleteRefreshTokenByID(ctx context.Context, token string) error {
-	_, err := q.db.ExecContext(ctx, deleteRefreshTokenByID, token)
+func (q *Queries) DeleteRefreshToken(ctx context.Context, token string) error {
+	_, err := q.db.ExecContext(ctx, deleteRefreshToken, token)
 	return err
 }
 
@@ -123,7 +123,7 @@ func (q *Queries) GetAllRefreshTokens(ctx context.Context) ([]RefreshToken, erro
 const getRefreshToken = `-- name: GetRefreshToken :one
 SELECT token, created_at, updated_at, user_id, expires_at, revoked_at
 FROM refresh_tokens
-WHERE token IN ($1)
+WHERE token IN ($1) and revoked_at is NULL
 `
 
 func (q *Queries) GetRefreshToken(ctx context.Context, token string) (RefreshToken, error) {
@@ -161,24 +161,24 @@ func (q *Queries) GetRefreshTokenByUserID(ctx context.Context, userID uuid.UUID)
 	return i, err
 }
 
-const revokeRefreshTokenByID = `-- name: RevokeRefreshTokenByID :exec
+const revokeAllRefreshTokensByUserID = `-- name: RevokeAllRefreshTokensByUserID :exec
 UPDATE refresh_tokens
-SET revoked_at=NOW()
-WHERE token IN ($1)
-`
-
-func (q *Queries) RevokeRefreshTokenByID(ctx context.Context, token string) error {
-	_, err := q.db.ExecContext(ctx, revokeRefreshTokenByID, token)
-	return err
-}
-
-const revokeeAllRefreshTokensByUserID = `-- name: RevokeeAllRefreshTokensByUserID :exec
-UPDATE refresh_tokens
-SET revoked_at=NOW()
+SET revoked_at=NOW(), updated_at=NOW()
 WHERE user_id IN ($1)
 `
 
-func (q *Queries) RevokeeAllRefreshTokensByUserID(ctx context.Context, userID uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, revokeeAllRefreshTokensByUserID, userID)
+func (q *Queries) RevokeAllRefreshTokensByUserID(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, revokeAllRefreshTokensByUserID, userID)
+	return err
+}
+
+const revokeRefreshToken = `-- name: RevokeRefreshToken :exec
+UPDATE refresh_tokens
+SET revoked_at=NOW(), updated_at=NOW()
+WHERE token IN ($1)
+`
+
+func (q *Queries) RevokeRefreshToken(ctx context.Context, token string) error {
+	_, err := q.db.ExecContext(ctx, revokeRefreshToken, token)
 	return err
 }
