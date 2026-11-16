@@ -1,3 +1,3 @@
 # chirpy_go
 
-Twitter-like system using Go
+Twitter-like system using Go with ProgreSQL
