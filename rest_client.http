@@ -194,6 +194,6 @@ content-type: application/json
 Authorization: "Bearer Authorization"
 
 {
-  "body": "This is the first chirp!",
+  "body": "This is the final chirp!",
   "user_id": "e68bc280-38ff-4811-b005-4b7fb7787ee7"
 }
